@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aqua Shine | Inventory and POS System</title>
+  <link rel="icon" type="image/png" href="img/favicon.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+   <!-- LOGIN / SIGN UP -->
+  <section class="auth-screen" id="authScreen">
+    <!-- Left: Logo & Brand Text -->
+    <div class="white-panel">
+      <img class="logo" src="img/logo.png" alt="Aqua Shine logo">
+      <div class="brand-name">
+        <span>Aqua Shine</span>
+        <span>Electrical</span>
+        <span>and</span>
+        <span>Industrial</span>
+        <span>Supplies</span>
+        <span>Trading</span>
+      </div>
+    </div>
+
+    <!-- Right: Login Form -->
+    <div class="auth-panel">
+      <form id="authForm" class="auth-form" autocomplete="off">
+        <h1 id="authTitle">LOGIN</h1>
+        <div class="row2 signup-only hidden">
+          <div><label for="first">FIRST NAME <span class="req">*</span></label><input id="first"></div>
+          <div><label for="last">LAST NAME <span class="req">*</span></label><input id="last"></div>
+        </div>
+        <label for="username">USERNAME<span class="req">*</span></label>
+        <input id="username" autocomplete="username">
+        <label for="password">PASSWORD<span class="req">*</span></label>
+        <input id="password" type="password" autocomplete="current-password">
+        <div class="signup-only hidden">
+          <label for="roleLocked">ROLE<span class="req">*</span></label>
+          <input id="roleLocked" value="Cashier" disabled title="New accounts start as Cashier. An Admin can change roles.">
+        </div>
+        <div class="login-only">
+          <label for="role">ROLE</label>
+          <select id="role"><option>Admin</option><option>Manager</option><option selected>Cashier</option></select>
+        </div>
+        <p class="auth-msg" id="authMsg"></p>
+        <button class="gradient-button auth-submit" id="authSubmit" type="submit">LOGIN</button>
+        <p class="auth-switch"><span id="switchText"></span> <a href="#" id="switchLink"></a></p>
+      </form>
+    </div>
+  </section>
+
+  <!-- APP -->
+  <main class="app hidden" id="app">
+    <aside class="sidebar">
+      <div class="side-brand"><img class="mini-logo" src="img/logo.png" alt=""><div>AQUA SHINE</div><small id="userInfo"></small></div>
+      <nav class="side-nav" id="nav"></nav>
+      <button class="gradient-button nav-button logout" id="logoutBtn">LOGOUT</button>
+    </aside>
+    <section class="main-content">
+      <header class="page-header">
+        <h1 id="pageTitle"></h1>
+        <div class="datetime"><span id="dateToday"></span><span id="timeNow"></span></div>
+      </header>
+      <section class="view" id="view"></section>
+      <footer class="footer-brand">Aqua Shine Electrical and Industrial Supplies <span>Trading POS System</span></footer>
+    </section>
+  </main>
+
+  <div class="modal hidden" id="modal"><div class="modal-box" id="modalBox"></div></div>
+  <div class="toast" id="toast"></div>
+  <script src="app.js"></script>
+</body>
+</html>

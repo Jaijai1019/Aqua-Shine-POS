@@ -1,0 +1,10 @@
+# Build results
+bin/
+obj/
+# User-specific files
+*.user
+*.suo
+# VS Code
+.vscode/
+# Node modules (if any)
+node_modules/
