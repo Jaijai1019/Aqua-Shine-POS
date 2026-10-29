@@ -1,5 +1,5 @@
 'use strict';
-/* ===== helpers ===== */
+/* helpers */
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const peso = n => '₱' + Number(n || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -46,7 +46,7 @@ function downloadExcel(filename, rows, headersMap) {
       if (k === 'date') cls = 'class="col-date"';
       if (k === 'total') cls = 'class="col-currency"';
       
-      // For currency, remove the ₱ sign so Excel can format it as a number
+
       let displayVal = val;
       if (k === 'total') displayVal = String(val).replace('₱', '').replace(/,/g, '');
       
@@ -67,7 +67,7 @@ function downloadExcel(filename, rows, headersMap) {
   URL.revokeObjectURL(url);
 }
 
-/* ===== bridge to C# (all database work happens there) ===== */
+/* bridge to C# (all database work happens there) */
 const pending = new Map(); let seq = 0;
 if (window.chrome?.webview) {
   chrome.webview.addEventListener('message', e => {
@@ -83,7 +83,7 @@ function api(action, payload = {}) {
   });
 }
 
-/* ===== modal helpers ===== */
+/* modal helpers */
 function openModal(html) { $('#modalBox').innerHTML = html; $('#modal').classList.remove('hidden'); }
 function closeModal() { $('#modal').classList.add('hidden'); $('#modalBox').innerHTML = ''; }
 function openForm(title, fields, submit = 'SAVE') {
@@ -105,12 +105,12 @@ function askConfirm(msg) {
   });
 }
 
-/* ===== state ===== */
+/* state */
 let user = null, items = [], baskets = [[], []];
 const newMeta = () => ({ type: 'Walk-in', customer: '', address: '', contact: '', fee: '', paid: '' });
 let meta = [newMeta(), newMeta()];
 
-/* ===== login / sign up ===== */
+/* login / sign up */
 let signup = false;
 function setMode(s, msg = '') {
   signup = s;
@@ -138,7 +138,7 @@ $('#authForm').onsubmit = async e => {
 setMode(false);
 api('auth.info').then(i => { if (i.firstRun) $('#authMsg').textContent = 'First run: log in as admin / admin123 (Role: Admin), then change the password under USERS.'; }).catch(() => { });
 
-/* ===== shell ===== */
+/* shell */
 const TITLES = { items: 'ITEMS', add: 'ADD ITEMS', stock: 'STOCK', b1: 'BASKET 1', b2: 'BASKET 2', history: 'TRANSACTION HISTORY', users: 'USERS', audit: 'AUDIT LOG' };
 function tabsFor(role) {
   const t = ['items'];
@@ -194,7 +194,7 @@ function tick() {
 }
 tick(); setInterval(tick, 1000);
 
-/* ===== ITEMS ===== */
+/* ITEMS */
 async function viewItems() {
   items = await api('items.list');
   const cashier = user.role === 'Cashier';
@@ -245,7 +245,7 @@ function addToBasket(b, id, qty) {
   updateCounts(); toast(`Added ${qty} × ${it.name} → Basket ${b + 1}`);
 }
 
-/* ===== ADD ITEMS (Admin) ===== */
+/* ADD ITEMS (Admin) */
 async function viewAdd() {
   items = await api('items.list');
   const cats = [...new Set(['Water Bottles', 'Caps', 'Seals', 'Filters', 'Pumps', 'Water Products', 'Other', ...items.map(i => i.category)])];
@@ -286,7 +286,7 @@ async function viewAdd() {
   $('#f_name').focus();
 }
 
-/* ===== STOCK (Admin / Manager) ===== */
+/* STOCK (Admin / Manager) */
 async function viewStock() {
   items = await api('items.list');
   $('#view').innerHTML = `
@@ -321,7 +321,7 @@ async function viewStock() {
   $('#q').focus();
 }
 
-/* ===== BASKETS (Cashier) ===== */
+/* BASKETS (Cashier) */
 function viewBasket(b) {
   const cart = baskets[b], m = meta[b];
   const subTotal = cart.reduce((s, l) => s + l.price * l.qty, 0);
@@ -401,7 +401,7 @@ async function checkout(b, total) {
   } catch (err) { toast(err.message, true); }
 }
 
-/* ===== RECEIPT ===== */
+/* RECEIPT */
 async function showReceipt(id) {
   try {
     const r = await api('sales.receipt', { id });
@@ -424,7 +424,7 @@ async function showReceipt(id) {
   } catch (err) { toast(err.message, true); }
 }
 
-/* ===== TRANSACTION HISTORY ===== */
+/* TRANSACTION HISTORY */
 let historyCache = []; 
 
 async function viewHistory() {
@@ -503,7 +503,7 @@ async function openDeliveryStatus(id) {
   } catch (err) { toast(err.message, true); }
 }
 
-/* ===== USERS (Admin) ===== */
+/* USERS (Admin) */
 async function viewUsers() {
   const users = await api('users.list');
   $('#view').innerHTML = `<div class="tablewrap"><table class="grid"><thead><tr><th>Username</th><th>Name</th><th>Role</th><th>Created</th><th></th></tr></thead><tbody id="rows">
@@ -524,7 +524,7 @@ async function viewUsers() {
   };
 }
 
-/* ===== AUDIT LOG (Admin) ===== */
+/*AUDIT LOG (Admin)*/
 let auditCache = []; 
 
 async function viewAudit() {

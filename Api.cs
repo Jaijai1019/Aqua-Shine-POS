@@ -65,7 +65,7 @@ static class Api
         }
     }
 
-    // ---------- accounts ----------
+    // accounts
     static object Login(JsonElement p)
     {
         var u = p.S("username").Trim(); var pw = p.S("password");
@@ -117,7 +117,7 @@ static class Api
         return new { ok = true };
     }
 
-    // ---------- items & stock ----------
+    // items & stock
     static object SaveItem(JsonElement p)
     {
         int id = p.I("id"), qty = p.I("qty"), re = p.I("reorder"); var price = p.D("price"); var name = p.S("name").Trim();
@@ -179,7 +179,7 @@ static class Api
         return OneItem(id);
     }
 
-    // ---------- sales ----------
+    // sales
     static object Checkout(JsonElement p)
     {
         Need("Cashier");
