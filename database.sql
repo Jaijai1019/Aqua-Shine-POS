@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS users(
   username VARCHAR(50) NOT NULL UNIQUE,
   password_hash VARCHAR(200) NOT NULL,
   role_id INT NOT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1, 
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (role_id) REFERENCES roles(id)
 );
