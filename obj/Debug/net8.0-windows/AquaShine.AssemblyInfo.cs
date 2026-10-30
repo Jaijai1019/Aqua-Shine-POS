@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AquaShine")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+84f5ec31b4c51bdadf3a474d281b39b7cd0b8b72")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+27a177e893b30f0c1afe57cfc49b1c8e19c86eb8")]
 [assembly: System.Reflection.AssemblyProductAttribute("AquaShine")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AquaShine")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

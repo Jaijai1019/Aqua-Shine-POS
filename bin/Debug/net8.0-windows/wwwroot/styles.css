@@ -11,22 +11,22 @@ button{cursor:pointer}
 button:disabled{opacity:.45;cursor:not-allowed}
 .hidden{display:none!important}
 
-/* buttons */
+/* ---------- buttons ---------- */
 .gradient-button{border:1px solid #071e3e;border-radius:999px;background:var(--btn);color:#fff;font-family:var(--head);font-weight:600;transition:filter .15s}
 .gradient-button:hover{filter:brightness(1.1)}
 .gradient-button.ghost{background:#fff;color:var(--brand);border-color:var(--brand)}
 .small-button{border:1px solid #0c376b;background:var(--btn);border-radius:16px;padding:5px 12px;font:600 14px var(--head);color:#fff}
 .small-button.danger{background:linear-gradient(180deg,#ff8d8d,#c0392b);border-color:#7a1d14}
 .small-button.light{background:#fff;color:var(--brand);border-color:var(--brand)}
+.small-button.active { background: var(--brand) !important; color: #fff !important; border-color: var(--brand) !important; }
 
-/* login / sign up */
+/* ---------- login / sign up ---------- */
 .auth-screen{
   display:grid;
   grid-template-columns: 40% 60%; 
   height:calc(100vh - 6vh); margin:3vh 3vw;
   border-radius:50px; overflow:hidden; background:#fff;
 }
-
 .white-panel{
   padding: 2vh 3vw; 
   display:flex; 
@@ -34,7 +34,6 @@ button:disabled{opacity:.45;cursor:not-allowed}
   justify-content:center; 
   align-items:center; 
 }
-
 .logo{
   width: 100%; 
   max-width: 150px; 
@@ -42,7 +41,6 @@ button:disabled{opacity:.45;cursor:not-allowed}
   object-fit: contain; 
   margin-bottom: 3vh;
 }
-
 .brand-name{
   display:flex; 
   flex-direction:column; 
@@ -60,7 +58,6 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .brand-name span:nth-child(4){color:#50515a}
 .brand-name span:nth-child(5){color:#665448}
 .brand-name span:nth-child(6){color:#7c563d}
-
 .auth-panel{
   background:var(--panel); 
   border-radius:50px 0 0 50px; 
@@ -70,7 +67,6 @@ button:disabled{opacity:.45;cursor:not-allowed}
   padding:2vh 5%;
 }
 .auth-form{width:min(560px,100%); display:flex; flex-direction:column; color:#fff}
-
 .auth-form h1{font:700 clamp(40px,8vh,75px)/1.1 var(--head); text-align:center; margin:0 0 2vh}
 .auth-form label{display:block; font:600 22px var(--head); margin:12px 0 6px}
 .auth-form input,.auth-form select{width:100%; height:56px; border:1px solid #102c54; border-radius:6px; padding:0 16px; font-size:22px; background:#fff; color:#222}
@@ -80,7 +76,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .auth-switch{text-align:center; font:600 20px var(--head); margin:0}
 .auth-switch a{color:#0b1d3a; font-style:italic; text-decoration:underline}
 
-/* app shell */
+/* ---------- app shell ---------- */
 .app{display:flex;height:100vh;background:#fff}
 .sidebar{width:240px;flex-shrink:0;background:var(--panel);border-radius:0 28px 28px 0;padding:14px;display:flex;flex-direction:column}
 .side-brand{color:#fff;text-align:center;font:700 24px var(--head)}
@@ -99,8 +95,8 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .footer-brand{padding-top:5px;font:600 15px var(--head);font-variant:small-caps;color:var(--brand)}
 .footer-brand span{color:var(--brown)}
 
-/* toolbar, tables */
-.toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px}
+/* ---------- toolbar, tables ---------- */
+.toolbar{display:flex;gap:10px;align-items:center;margin-bottom:8px; flex-shrink: 0;}
 .search{flex:1;display:flex;height:46px;border:1.5px solid #171717;border-radius:999px;overflow:hidden;min-width:0}
 .search span{width:56px;display:grid;place-items:center;background:#347bd0;font-size:22px;flex-shrink:0}
 .search input{flex:1;border:0;outline:0;padding:0 16px;font-size:18px;min-width:0}
@@ -122,100 +118,30 @@ table.grid{width:100%;border-collapse:collapse;font-size:15px}
 .empty strong{display:block;font:600 28px var(--head);color:#333;margin-bottom:6px}
 .footline{padding:6px 2px 0;font:600 16px var(--head);color:var(--brand)}
 
-/* add-items form */
-.formbar{
-  display:grid;
-  /* Item Name (1.5) | Brand (1) | Category (1) | Price (0.8) | Qty (0.7) | Reorder (0.7) | Buttons (auto) */
-  grid-template-columns: 1.5fr 1fr 1fr 0.8fr 0.7fr 0.7fr auto; 
-  gap:8px 10px;
-  align-items:end;
-  background:var(--pale);
-  padding:10px;
-  margin-bottom:8px;
-  width: 100%;
-}
-.formbar label{
-  display:flex;
-  flex-direction:column;
-  gap:3px;
-  font:600 13px var(--head);
-  color:var(--brand);
-  min-width: 0; /* Ensures inputs shrink properly if the screen is small */
-}
-.formbar input{
-  height:38px;
-  border:1px solid #6d8fb5;
-  border-radius:6px;
-  padding:0 8px;
-  font-size:15px;
-  width: 100%; /* Forces inputs to stay inside their grid column */
-  min-width: 0;
-}
-.formbtns{
-  display:flex;
-  gap:8px;
-  padding-bottom: 1px; /* Aligns the buttons perfectly with the inputs */
-}
-.formbtns button{
-  height:38px;
-  padding:0 16px;
-  font-size:15px;
-  white-space: nowrap; /* Prevents text inside button from breaking into two lines */
-}
+/* ---------- add-items form ---------- */
+.formbar{display:grid;grid-template-columns:2fr 1.2fr 1.2fr .9fr .8fr .8fr auto;gap:8px 10px;align-items:end;background:var(--pale);padding:10px;margin-bottom:8px}
+.formbar label{display:flex;flex-direction:column;gap:3px;font:600 13px var(--head);color:var(--brand)}
+.formbar input{height:38px;border:1px solid #6d8fb5;border-radius:6px;padding:0 8px;font-size:15px;min-width:0}
+.formbtns{display:flex;gap:8px}.formbtns button{height:38px;padding:0 18px;font-size:16px}
 
-/* basket (FIXED LAYOUT) */
+/* ---------- basket ---------- */
 .pos{flex:1;min-height:0;display:grid;grid-template-columns:1fr 360px;gap:10px}
-.summary{
-  background:var(--pale);
-  padding:12px;
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-  overflow-y:auto; /* Allows scrolling if content is too tall */
-  overflow-x:hidden; /* Prevents content from pushing out to the right */
-}
+.summary{background:var(--pale);padding:12px;display:flex;flex-direction:column;gap:6px;overflow-y:auto;overflow-x:hidden;}
 .summary h2{font:700 24px var(--head);color:var(--brand);margin:0}
-.summary label{display:flex;flex-direction:column;gap:2px;font:600 13px var(--head);color:var(--brand); width: 100%;}
-.summary input, .summary select{
-  width: 100%; /* Force inputs to fit inside the box */
-  height:38px;
-  border:1px solid #6d8fb5;
-  border-radius:6px;
-  padding:0 8px;
-  font-size:15px;
-  background:#fff;
-}
+.summary label{display:flex;flex-direction:column;gap:2px;font:600 13px var(--head);color:var(--brand);width:100%;}
+.summary input,.summary select{width: 100%; height:38px;border:1px solid #6d8fb5;border-radius:6px;padding:0 8px;font-size:15px;background:#fff}
 .summary input:disabled{background:#e4e9ef}
 .units{color:#555;font-size:14px}
 .total{font:700 28px var(--head);color:var(--brand);margin:4px 0;}
 .change{font:700 18px var(--head)}
 .change.ok{color:#17613a}.change.short{color:#b3261e}
-
-/* BUTTONS IN BASKET */
-.checkout{
-  height:50px;
-  font-size:24px;
-  margin-top:auto;
-  width: 100%; /* Make sure it spans the whole width */
-}
-.summary .ghost { 
-  height: 44px;
-  font-size: 18px;
-  color: #b3261e;
-  border-color: #b3261e;
-  background: #fff;
-  margin-top: 4px;
-  width: 100%; /* Make sure it spans the whole width */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
+.checkout{height:50px;font-size:24px;margin-top:auto;width: 100%;}
+.summary .ghost { height: 44px; font-size: 18px; color: #b3261e; border-color: #b3261e; background: #fff; margin-top: 4px; width: 100%; display: flex; align-items: center; justify-content: center; }
 .qty{display:inline-flex;align-items:center;gap:8px}
 .qty button{width:28px;height:28px;border-radius:50%;border:1px solid var(--brand);background:#fff;font-weight:800}
 .qty span{min-width:22px;text-align:center;font-weight:700}
 
-/* modal, toast, receipt */
+/* ---------- modal, toast, receipt ---------- */
 .modal{position:fixed;inset:0;background:rgba(10,30,60,.55);display:grid;place-items:center;z-index:50}
 .modal-box{background:#fff;border-radius:16px;padding:18px;min-width:340px;max-width:92vw;max-height:92vh;overflow:auto}
 .modal-box h2{font:700 24px var(--head);color:var(--brand);margin:0 0 10px}
@@ -232,6 +158,21 @@ table.grid{width:100%;border-collapse:collapse;font-size:15px}
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(30px);background:#12335e;color:#fff;padding:11px 20px;border-radius:999px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:99;max-width:90vw}
 .toast.show{opacity:1;transform:translateX(-50%)}.toast.bad{background:#b3261e}
 
+/* Chart specific CSS (Only applies to the dashboard chart) */
+.chart-container {
+  flex: 1;
+  min-height: 400px; 
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 30px;
+  margin-bottom: 15px;
+}
+.chart-container canvas {
+  flex: 1;
+  width: 100% !important;
+  height: 100% !important;
+}
+
 @media print{
   body *{visibility:hidden}
   #receipt,#receipt *{visibility:visible}
@@ -244,5 +185,3 @@ table.grid{width:100%;border-collapse:collapse;font-size:15px}
   .auth-panel{border-radius:0}
   .sidebar{width:190px}.nav-button{font-size:17px}
 }
-
-.req { color: #b3261e; font-weight: bold; margin-left: 2px; }

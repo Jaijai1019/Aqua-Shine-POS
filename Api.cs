@@ -18,7 +18,6 @@ static class Api
         if (roles.Length > 0 && !roles.Contains(Session.Role)) throw new Exception("You do not have permission to do that.");
     }
     
-    // Formats DateTime with AM/PM (hh:mm tt)
     static object Norm(object v) => v switch { DBNull => null, DateTime d => d.ToString("yyyy-MM-dd hh:mm tt"), _ => v };
     
     static List<Dictionary<string, object>> Rows(DataTable t) =>
@@ -33,6 +32,9 @@ static class Api
             ("@u", Session.UserId), ("@a", action), ("@d", details));
     }
 
+    static DateTime Day(string s, DateTime fallback) =>
+        DateTime.TryParseExact(s, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d) ? d : fallback;
+
     public static object Handle(string action, JsonElement p)
     {
         switch (action)
@@ -41,6 +43,9 @@ static class Api
             case "auth.login": return Login(p);
             case "auth.signup": return Signup(p);
             case "auth.logout": Session.Clear(); return new { ok = true };
+
+            case "dashboard.stats": Need("Admin", "Manager"); return GetDashboardStats();
+            case "dashboard.chart": Need("Admin", "Manager"); return GetDashboardChart(p.S("range"));
 
             case "items.list": Need(); return Rows(Db.Table(ItemSql + " ORDER BY name"));
             case "items.save": Need("Admin"); return SaveItem(p);
@@ -51,8 +56,31 @@ static class Api
 
             case "sales.checkout": return Checkout(p);
             case "sales.list": Need(); return SalesList(p);
-            case "sales.receipt": Need(); return ReceiptData(p.I("id"));
-            case "sales.updateDelivery": Need("Admin", "Manager"); return UpdateDelivery(p);
+            
+            case "sales.receipt": 
+                Need(); 
+                // BULLETPROOF ID PARSING
+                int rid = 0;
+                if (p.TryGetProperty("id", out var idNum) && idNum.ValueKind == JsonValueKind.Number) {
+                    rid = idNum.GetInt32();
+                } else if (p.TryGetProperty("id", out var idStr) && idStr.ValueKind == JsonValueKind.String) {
+                    int.TryParse(idStr.GetString(), out rid);
+                }
+                
+                if (rid > 0) return ReceiptData(rid);
+                throw new Exception("Invalid receipt ID.");
+                
+            case "sales.updateDelivery": 
+                Need("Admin", "Manager"); 
+                int uid = 0;
+                if (p.TryGetProperty("id", out var uNum) && uNum.ValueKind == JsonValueKind.Number) {
+                    uid = uNum.GetInt32();
+                } else if (p.TryGetProperty("id", out var uStr) && uStr.ValueKind == JsonValueKind.String) {
+                    int.TryParse(uStr.GetString(), out uid);
+                }
+                
+                if (uid > 0) return UpdateDelivery(uid, p.S("status"));
+                throw new Exception("Invalid delivery ID.");
 
             case "users.list": Need("Admin"); return Rows(Db.Table(@"SELECT u.id, u.username, CONCAT(u.first_name,' ',u.last_name) AS name, r.name AS role, u.created_at AS created 
                                                                  FROM users u JOIN roles r ON u.role_id = r.id WHERE u.is_active=1 ORDER BY u.username"));
@@ -72,7 +100,6 @@ static class Api
         var u = p.S("username").Trim(); var pw = p.S("password");
         if (u == "" || pw == "") throw new Exception("Enter your username and password.");
         
-        // Added is_active=1 check to block deleted users
         var t = Db.Table("SELECT u.id, u.first_name, u.last_name, u.password_hash, r.name AS role FROM users u JOIN roles r ON u.role_id=r.id WHERE u.username=@u AND u.is_active=1", ("@u", u));
         if (t.Rows.Count == 0 || !Db.Verify(pw, (string)t.Rows[0]["password_hash"])) throw new Exception("Invalid username or password, or account is deactivated.");
         
@@ -126,10 +153,56 @@ static class Api
         int id = p.I("id");
         if (id == Session.UserId) throw new Exception("You cannot delete your own account.");
         
-        // Soft delete: just mark as inactive so past receipts don't break
         Db.Exec("UPDATE users SET is_active=0 WHERE id=@i", ("@i", id));
         LogAudit("Delete User", $"Deactivated user ID {id}");
         return new { ok = true };
+    }
+
+    // dashboard
+    static object GetDashboardStats()
+    {
+        object totalSales = Db.Scalar("SELECT IFNULL(SUM(total), 0) FROM sales");
+        object totalTransactions = Db.Scalar("SELECT COUNT(*) FROM sales");
+        
+        object totalItems = Db.Scalar("SELECT COUNT(*) FROM items WHERE is_active=1");
+        object available = Db.Scalar("SELECT COUNT(*) FROM items WHERE is_active=1 AND quantity > reorder_level");
+        object lowStock = Db.Scalar("SELECT COUNT(*) FROM items WHERE is_active=1 AND quantity <= reorder_level AND quantity > 0");
+        object outOfStock = Db.Scalar("SELECT COUNT(*) FROM items WHERE is_active=1 AND quantity = 0");
+        
+        var recent = Rows(Db.Table(@"SELECT s.id, s.receipt_no AS receipt, s.created_at AS date, s.customer, s.total 
+                                     FROM sales s ORDER BY s.created_at DESC LIMIT 5"));
+
+        return new { 
+            sales = totalSales, transactions = totalTransactions, 
+            items = totalItems, available = available, low = lowStock, outOfStock = outOfStock, 
+            recent = recent 
+        };
+    }
+
+    static object GetDashboardChart(string range)
+    {
+        string sql = "";
+        if (range == "weekly")
+        {
+            sql = @"SELECT DATE_FORMAT(created_at, '%b %d') AS label, SUM(total) AS total 
+                    FROM sales WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) 
+                    GROUP BY DATE(created_at) ORDER BY DATE(created_at) ASC";
+        }
+        else if (range == "monthly")
+        {
+            sql = @"SELECT DATE_FORMAT(created_at, '%b %d') AS label, SUM(total) AS total 
+                    FROM sales WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 29 DAY) 
+                    GROUP BY DATE(created_at) ORDER BY DATE(created_at) ASC";
+        }
+        else // yearly
+        {
+            sql = @"SELECT DATE_FORMAT(created_at, '%b %Y') AS label, SUM(total) AS total 
+                    FROM sales WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH) 
+                    GROUP BY YEAR(created_at), MONTH(created_at) ORDER BY YEAR(created_at), MONTH(created_at) ASC";
+        }
+        
+        var chartData = Rows(Db.Table(sql));
+        return new { chartData };
     }
 
     // items & stock
@@ -249,9 +322,6 @@ static class Api
         catch { tx.Rollback(); throw; }
     }
 
-    static DateTime Day(string s, DateTime fallback) =>
-        DateTime.TryParseExact(s, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d) ? d : fallback;
-
     static object SalesList(JsonElement p)
     {
         var from = Day(p.S("from"), DateTime.Today.AddDays(-30)); var to = Day(p.S("to"), DateTime.Today).AddDays(1);
@@ -265,20 +335,43 @@ static class Api
 
     static object ReceiptData(int id)
     {
-        var t = Db.Table(@"SELECT s.user_id,s.receipt_no,s.created_at AS date,s.sale_type AS type,s.customer,s.address,s.contact_no AS contact,
-                                  s.delivery_fee AS fee, s.delivery_status AS d_status, s.total,s.payment AS paid,s.change_amt AS chg,
-                                  CONCAT(u.first_name,' ',u.last_name) AS cashier
-                           FROM sales s JOIN users u ON u.id=s.user_id WHERE s.id=@i", ("@i", id));
-        if (t.Rows.Count == 0) throw new Exception("Receipt not found.");
-        if (Session.Role == "Cashier" && Convert.ToInt32(t.Rows[0]["user_id"]) != Session.UserId) throw new Exception("You can only view your own receipts.");
-        var lines = Rows(Db.Table("SELECT item_name AS name,unit_price AS price,qty,line_total AS total FROM sale_items WHERE sale_id=@i", ("@i", id)));
-        var h = Rows(t)[0]; h["lines"] = lines; return h;
+        if (id <= 0) throw new Exception("Invalid receipt ID.");
+
+        var t = Db.Table("SELECT * FROM sales WHERE id=@i", ("@i", id));
+        if (t.Rows.Count == 0) throw new Exception($"Receipt ID {id} does not exist in the database.");
+
+        var row = t.Rows[0];
+        
+        if (Session.Role == "Cashier" && Convert.ToInt32(row["user_id"]) != Session.UserId) 
+            throw new Exception("Permission Denied: You can only view your own receipts.");
+
+        var cashierName = Db.Scalar("SELECT CONCAT(first_name,' ',last_name) FROM users WHERE id=@u", ("@u", row["user_id"]))?.ToString() ?? "Unknown";
+
+        var lines = Rows(Db.Table("SELECT item_name AS name, unit_price AS price, qty, line_total AS total FROM sale_items WHERE sale_id=@i", ("@i", id)));
+
+        return new Dictionary<string, object>
+        {
+            ["receipt_no"] = row["receipt_no"].ToString(),
+            ["date"] = ((DateTime)row["created_at"]).ToString("yyyy-MM-dd hh:mm tt"),
+            ["type"] = row["sale_type"].ToString(),
+            ["customer"] = row["customer"].ToString(),
+            ["address"] = row["address"].ToString(),
+            ["contact"] = row["contact_no"].ToString(),
+            ["fee"] = row["delivery_fee"],
+            ["d_status"] = row["delivery_status"].ToString(),
+            ["total"] = row["total"],
+            ["paid"] = row["payment"],
+            ["chg"] = row["change_amt"],
+            ["cashier"] = cashierName,
+            ["lines"] = lines
+        };
     }
 
-    static object UpdateDelivery(JsonElement p)
+    static object UpdateDelivery(int id, string status)
     {
-        int id = p.I("id"); var status = p.S("status");
-        if (status != "Pending" && status != "Out for Delivery" && status != "Delivered" && status != "Cancelled") throw new Exception("Invalid status.");
+        if (status != "Pending" && status != "Out for Delivery" && status != "Delivered" && status != "Cancelled") 
+            throw new Exception("Invalid status.");
+            
         Db.Exec("UPDATE sales SET delivery_status=@s WHERE id=@i", ("@s", status), ("@i", id));
         LogAudit("Delivery Update", $"Sale ID {id} marked as {status}");
         return new { ok = true };

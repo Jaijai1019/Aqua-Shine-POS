@@ -31,12 +31,12 @@
           <div><label for="first">FIRST NAME <span class="req">*</span></label><input id="first"></div>
           <div><label for="last">LAST NAME <span class="req">*</span></label><input id="last"></div>
         </div>
-        <label for="username">USERNAME<span class="req">*</span></label>
+        <label for="username">USERNAME <span class="req">*</span></label>
         <input id="username" autocomplete="username">
-        <label for="password">PASSWORD<span class="req">*</span></label>
+        <label for="password">PASSWORD <span class="req">*</span></label>
         <input id="password" type="password" autocomplete="current-password">
         <div class="signup-only hidden">
-          <label for="roleLocked">ROLE<span class="req">*</span></label>
+          <label for="roleLocked">ROLE <span class="req">*</span></label>
           <input id="roleLocked" value="Cashier" disabled title="New accounts start as Cashier. An Admin can change roles.">
         </div>
         <div class="login-only">
@@ -50,7 +50,7 @@
     </div>
   </section>
 
-  <!-- APP --->
+  <!-- APP -->
   <main class="app hidden" id="app">
     <aside class="sidebar">
       <div class="side-brand"><img class="mini-logo" src="img/logo.png" alt=""><div>AQUA SHINE</div><small id="userInfo"></small></div>
@@ -69,6 +69,9 @@
 
   <div class="modal hidden" id="modal"><div class="modal-box" id="modalBox"></div></div>
   <div class="toast" id="toast"></div>
+  
+  <!-- Load Chart.js FIRST, then app.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 'use strict';
-/* helpers */
+/* ===== helpers ===== */
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const peso = n => '₱' + Number(n || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -12,62 +12,39 @@ function toast(msg, bad = false) {
   clearTimeout(toastTimer); toastTimer = setTimeout(() => t.className = 'toast', 2600);
 }
 
-// Export to Excel via HTML Table (Fixes the ##### issue and auto-sizes columns)
 function downloadExcel(filename, rows, headersMap) {
   if (!rows || !rows.length) return toast('No data to export.', true);
-  
   const keys = Object.keys(headersMap);
-  
-  // Create HTML table with styling
   let html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
   <head><meta charset="utf-8"><style>
     table { border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px; }
     th { background-color: #eaf5ff; color: #245587; border: 1px solid #9bb7d6; padding: 8px; text-align: left; }
     td { border: 1px solid #d5dde6; padding: 6px; }
-    /* Force Date & Time column to be wide enough */
     .col-date { mso-number-format:"\\@"; width: 150px; }
     .col-currency { mso-number-format:"\\#\\,##0\\.00"; width: 80px; }
   </style></head><body><table>`;
   
-  // Header Row
   html += `<tr>`;
-  keys.forEach(k => {
-    const cls = k === 'date' ? 'class="col-date"' : (k === 'total' ? 'class="col-currency"' : '');
-    html += `<th ${cls}>${esc(headersMap[k])}</th>`;
-  });
+  keys.forEach(k => { html += `<th ${k === 'date' ? 'class="col-date"' : (k === 'total' ? 'class="col-currency"' : '')}>${esc(headersMap[k])}</th>`; });
   html += `</tr>`;
-  
-  // Data Rows
   rows.forEach(row => {
     html += `<tr>`;
     keys.forEach(k => {
       const val = row[k] === null ? '' : row[k];
-      let cls = '';
-      if (k === 'date') cls = 'class="col-date"';
-      if (k === 'total') cls = 'class="col-currency"';
-      
-
       let displayVal = val;
       if (k === 'total') displayVal = String(val).replace('₱', '').replace(/,/g, '');
-      
-      html += `<td ${cls}>${esc(displayVal)}</td>`;
+      html += `<td ${k === 'date' ? 'class="col-date"' : (k === 'total' ? 'class="col-currency"' : '')}>${esc(displayVal)}</td>`;
     });
     html += `</tr>`;
   });
-  
   html += `</table></body></html>`;
-  
-  // Create and download the file
   const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url;
-  a.download = filename.replace('.csv', '.xls');
-  a.click();
+  a.href = url; a.download = filename.replace('.csv', '.xls'); a.click();
   URL.revokeObjectURL(url);
 }
 
-/* bridge to C# (all database work happens there) */
 const pending = new Map(); let seq = 0;
 if (window.chrome?.webview) {
   chrome.webview.addEventListener('message', e => {
@@ -83,7 +60,6 @@ function api(action, payload = {}) {
   });
 }
 
-/* modal helpers */
 function openModal(html) { $('#modalBox').innerHTML = html; $('#modal').classList.remove('hidden'); }
 function closeModal() { $('#modal').classList.add('hidden'); $('#modalBox').innerHTML = ''; }
 function openForm(title, fields, submit = 'SAVE') {
@@ -105,12 +81,10 @@ function askConfirm(msg) {
   });
 }
 
-/* state */
 let user = null, items = [], baskets = [[], []];
 const newMeta = () => ({ type: 'Walk-in', customer: '', address: '', contact: '', fee: '', paid: '' });
 let meta = [newMeta(), newMeta()];
 
-/* login / sign up */
 let signup = false;
 function setMode(s, msg = '') {
   signup = s;
@@ -138,10 +112,11 @@ $('#authForm').onsubmit = async e => {
 setMode(false);
 api('auth.info').then(i => { if (i.firstRun) $('#authMsg').textContent = 'First run: log in as admin / admin123 (Role: Admin), then change the password under USERS.'; }).catch(() => { });
 
-/* shell */
-const TITLES = { items: 'ITEMS', add: 'ADD ITEMS', stock: 'STOCK', b1: 'BASKET 1', b2: 'BASKET 2', history: 'TRANSACTION HISTORY', users: 'USERS', audit: 'AUDIT LOG' };
+const TITLES = { dashboard: 'DASHBOARD', items: 'ITEMS', add: 'ADD ITEMS', stock: 'STOCK', b1: 'BASKET 1', b2: 'BASKET 2', history: 'TRANSACTION HISTORY', users: 'USERS', audit: 'AUDIT LOG' };
 function tabsFor(role) {
-  const t = ['items'];
+  const t = [];
+  if (role === 'Admin' || role === 'Manager') t.push('dashboard');
+  t.push('items');
   if (role === 'Admin') t.push('add');
   if (role === 'Admin' || role === 'Manager') t.push('stock');
   if (role === 'Cashier') t.push('b1', 'b2');
@@ -156,7 +131,7 @@ function startApp(u) {
   $('#nav').innerHTML = tabsFor(u.role).map(k =>
     `<button class="gradient-button nav-button" data-view="${k}">${TITLES[k].replace('TRANSACTION HISTORY', 'TRANSACTION<br>HISTORY').replace('AUDIT LOG', 'AUDIT LOG')}` +
     (k === 'b1' || k === 'b2' ? ` <span class="count" id="count${k[1]}">0</span>` : '') + `</button>`).join('');
-  go('items');
+  go(user.role === 'Cashier' ? 'items' : 'dashboard');
 }
 
 $('#nav').onclick = e => { const b = e.target.closest('[data-view]'); if (b) go(b.dataset.view); };
@@ -164,19 +139,12 @@ $('#nav').onclick = e => { const b = e.target.closest('[data-view]'); if (b) go(
 $('#logoutBtn').onclick = async () => {
   const confirmLogout = await askConfirm('Are you sure you want to log out?');
   if (!confirmLogout) return; 
-
   if (baskets.some(b => b.length)) {
     const discard = await askConfirm('Warning: Your active baskets have items. Logging out will discard them. Continue?');
     if (!discard) return; 
   }
-
   await api('auth.logout').catch(() => { });
-  user = null; 
-  $('#app').classList.add('hidden'); 
-  $('#authScreen').classList.remove('hidden'); 
-  setMode(false); 
-  $('#username').value = ''; 
-  $('#username').focus();
+  user = null; $('#app').classList.add('hidden'); $('#authScreen').classList.remove('hidden'); setMode(false); $('#username').value = ''; $('#username').focus();
 };
 
 function updateCounts() { [1, 2].forEach(n => { const el = $('#count' + n); if (el) el.textContent = baskets[n - 1].length; }); }
@@ -184,7 +152,7 @@ async function go(k) {
   document.querySelectorAll('.nav-button[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === k));
   $('#pageTitle').textContent = `${user.role.toUpperCase()} DASHBOARD  ›  ${TITLES[k]}`;
   $('#view').innerHTML = ''; updateCounts();
-  const views = { items: viewItems, add: viewAdd, stock: viewStock, b1: () => viewBasket(0), b2: () => viewBasket(1), history: viewHistory, users: viewUsers, audit: viewAudit };
+  const views = { dashboard: viewDashboard, items: viewItems, add: viewAdd, stock: viewStock, b1: () => viewBasket(0), b2: () => viewBasket(1), history: viewHistory, users: viewUsers, audit: viewAudit };
   try { await views[k](); } catch (e) { toast(e.message, true); }
 }
 function tick() {
@@ -194,7 +162,119 @@ function tick() {
 }
 tick(); setInterval(tick, 1000);
 
-/* ITEMS */
+/* ===== DASHBOARD ===== */
+async function viewDashboard() {
+  const s = await api('dashboard.stats');
+  
+  $('#view').innerHTML = `
+    <div style="display: flex; flex-direction: column; height: 100%; gap: 15px;">
+      <div class="dashboard-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px;">
+        <div style="background: var(--pale); padding: 20px; border-radius: 12px; border-left: 5px solid #17613a;">
+          <div style="font: 600 13px var(--head); color: #555;">TOTAL SALES</div>
+          <div style="font: 700 28px var(--head); color: #17613a;">${peso(s.sales)}</div>
+        </div>
+        <div style="background: var(--pale); padding: 20px; border-radius: 12px; border-left: 5px solid #245587;">
+          <div style="font: 600 13px var(--head); color: #555;">TRANSACTIONS</div>
+          <div style="font: 700 28px var(--head); color: #245587;">${s.transactions}</div>
+        </div>
+        <div style="background: var(--pale); padding: 20px; border-radius: 12px; border-left: 5px solid #6c757d;">
+          <div style="font: 600 13px var(--head); color: #555;">TOTAL ITEMS</div>
+          <div style="font: 700 28px var(--head); color: #6c757d;">${s.items}</div>
+        </div>
+        <div style="background: var(--pale); padding: 20px; border-radius: 12px; border-left: 5px solid #28a745;">
+          <div style="font: 600 13px var(--head); color: #555;">AVAILABLE</div>
+          <div style="font: 700 28px var(--head); color: #28a745;">${s.available}</div>
+        </div>
+        <div style="background: var(--pale); padding: 20px; border-radius: 12px; border-left: 5px solid #ffc107;">
+          <div style="font: 600 13px var(--head); color: #555;">LOW STOCK</div>
+          <div style="font: 700 28px var(--head); color: #ffc107;">${s.low}</div>
+        </div>
+        <div style="background: var(--pale); padding: 20px; border-radius: 12px; border-left: 5px solid #dc3545;">
+          <div style="font: 600 13px var(--head); color: #555;">OUT OF STOCK</div>
+          <div style="font: 700 28px var(--head); color: #dc3545;">${s.outOfStock}</div>
+        </div>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px; flex: 1; min-height: 0;">
+        <div class="chart-container" style="background: #fff; border: 1px solid #d5dde6; border-radius: 12px; padding: 15px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 style="margin:0; font: 700 18px var(--head); color: var(--brand);">SALES OVERVIEW</h3>
+            <div id="chartBtns">
+              <button class="small-button" data-range="weekly">This Week</button>
+              <button class="small-button light" data-range="monthly">This Month</button>
+              <button class="small-button light" data-range="yearly">This Year</button>
+            </div>
+          </div>
+          <canvas id="salesChart" style="width: 100%; height: 100%;"></canvas>
+        </div>
+        
+        <div class="tablewrap" style="margin:0; border-radius:12px; display: flex; flex-direction: column;">
+          <table class="grid" style="height: 100%;">
+            <thead><tr><th colspan="2" style="font-size: 16px; padding: 12px; background: var(--pale); color: var(--brand);">RECENT TRANSACTIONS</th></tr></thead>
+            <tbody>
+              ${s.recent.length ? s.recent.map(r => `<tr><td><b>${esc(r.receipt)}</b><br><small style="color:#777">${esc(r.customer || 'Walk-in')}</small></td>
+                <td class="num"><b>${peso(r.total)}</b><br><small style="color:#777">${esc(r.date.split(' ')[1] + ' ' + r.date.split(' ')[2])}</small></td></tr>`).join('') 
+                : `<tr><td colspan="2" class="emptyrow">No recent transactions.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+
+  const drawChart = async (range, btn) => {
+    document.querySelectorAll('#chartBtns button').forEach(b => {
+        b.classList.remove('active');
+        b.classList.add('light');
+    });
+    if (btn) {
+        btn.classList.remove('light');
+        btn.classList.add('active');
+    }
+
+    const data = await api('dashboard.chart', { range });
+    const labels = data.chartData.map(d => d.label);
+    const totals = data.chartData.map(d => Number(d.total));
+
+    if (window.myChart) window.myChart.destroy();
+    
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    window.myChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Total Sales (₱)',
+          data: totals,
+          backgroundColor: 'rgba(8, 123, 244, 0.2)',
+          borderColor: '#087bf4',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { 
+            y: { beginAtZero: true },
+            x: { grid: { display: false } }
+        }
+      }
+    });
+  };
+
+  $('#chartBtns').onclick = (e) => {
+    const btn = e.target.closest('button[data-range]');
+    if (btn) {
+        drawChart(btn.dataset.range, btn);
+    }
+  };
+
+  drawChart('weekly', document.querySelector('#chartBtns button[data-range="weekly"]'));
+}
+
+/* ===== ITEMS ===== */
 async function viewItems() {
   items = await api('items.list');
   const cashier = user.role === 'Cashier';
@@ -245,7 +325,7 @@ function addToBasket(b, id, qty) {
   updateCounts(); toast(`Added ${qty} × ${it.name} → Basket ${b + 1}`);
 }
 
-/* ADD ITEMS (Admin) */
+/* ===== ADD ITEMS (Admin) ===== */
 async function viewAdd() {
   items = await api('items.list');
   const cats = [...new Set(['Water Bottles', 'Caps', 'Seals', 'Filters', 'Pumps', 'Water Products', 'Other', ...items.map(i => i.category)])];
@@ -286,7 +366,7 @@ async function viewAdd() {
   $('#f_name').focus();
 }
 
-/* STOCK (Admin / Manager) */
+/* ===== STOCK (Admin / Manager) ===== */
 async function viewStock() {
   items = await api('items.list');
   $('#view').innerHTML = `
@@ -321,7 +401,7 @@ async function viewStock() {
   $('#q').focus();
 }
 
-/* BASKETS (Cashier) */
+/* ===== BASKETS (Cashier) ===== */
 function viewBasket(b) {
   const cart = baskets[b], m = meta[b];
   const subTotal = cart.reduce((s, l) => s + l.price * l.qty, 0);
@@ -401,10 +481,10 @@ async function checkout(b, total) {
   } catch (err) { toast(err.message, true); }
 }
 
-/* RECEIPT */
+/* ===== RECEIPT ===== */
 async function showReceipt(id) {
   try {
-    const r = await api('sales.receipt', { id });
+    const r = await api('sales.receipt', { id: Number(id) }); 
     openModal(`<div id="receipt"><img class="rlogo" src="img/logo.png" alt=""><h3>AQUA SHINE</h3><div class="c">Electrical and Industrial Supplies Trading</div><hr>
       Receipt : ${esc(r.receipt_no)}<br>Date    : ${esc(r.date)}<br>Cashier : ${esc(r.cashier)}<br>Type    : ${esc(r.type)}<br>
       Customer: ${esc(r.customer || 'Walk-in customer')}<br>
@@ -424,7 +504,7 @@ async function showReceipt(id) {
   } catch (err) { toast(err.message, true); }
 }
 
-/* TRANSACTION HISTORY */
+/* ===== TRANSACTION HISTORY ===== */
 let historyCache = []; 
 
 async function viewHistory() {
@@ -442,10 +522,12 @@ async function viewHistory() {
   const load = async () => {
     try {
       historyCache = await api('sales.list', { from: $('#h_from').value, to: $('#h_to').value, q: $('#h_q').value });
+      
       $('#rows').innerHTML = historyCache.length ? historyCache.map(r => `<tr data-id="${r.id}"><td><b>${esc(r.receipt)}</b></td><td>${esc(r.date)}</td><td>${esc(r.cashier)}</td><td>${esc(r.type)}</td>
         <td>${esc(r.customer || 'Walk-in customer')}</td>
         <td>${r.type === 'Delivery' ? `<span class="chip ${r.d_status === 'Delivered' ? 'ok' : r.d_status === 'Cancelled' ? 'out' : 'low'}">${esc(r.d_status)}</span>` : '-'}</td>
         <td class="num">${peso(r.total)}</td></tr>`).join('') : `<tr><td colspan="7" class="emptyrow">No transactions found.</td></tr>`;
+        
       $('#foot').textContent = `${historyCache.length} transaction(s)  ·  Sales total: ${peso(historyCache.reduce((s, r) => s + Number(r.total), 0))}  ·  Click a row to view the receipt`;
     } catch (err) { toast(err.message, true); }
   };
@@ -456,15 +538,17 @@ async function viewHistory() {
   
   $('#h_q').oninput = () => { clearTimeout(timer); timer = setTimeout(load, 250); };
   $('#h_from').onchange = load; $('#h_to').onchange = load;
+  
+  // REMOVED VIEW RECEIPT. ONLY UPDATES DELIVERY STATUS.
   $('#rows').onclick = e => { 
     const tr = e.target.closest('tr[data-id]'); 
     if (tr) { 
-      const id = +tr.dataset.id;
-      const rowData = e.target.closest('tbody').rows[Array.from(e.target.closest('tbody').rows).indexOf(tr)];
-      if (user.role !== 'Cashier' && tr.innerHTML.includes('Delivery')) {
-        openDeliveryStatus(id);
-      } else {
-        showReceipt(id); 
+      const id = parseInt(tr.dataset.id); 
+      if (!isNaN(id) && id > 0) {
+        // Only Admin/Manager can click Delivery rows to update status
+        if (user.role !== 'Cashier' && tr.innerHTML.includes('Delivery')) {
+          openDeliveryStatus(id);
+        }
       }
     } 
   };
@@ -473,7 +557,7 @@ async function viewHistory() {
 
 async function openDeliveryStatus(id) {
   try {
-    const r = await api('sales.receipt', { id });
+    const r = await api('sales.receipt', { id: Number(id) });
     openModal(`<h2>Delivery Status</h2>
       <p><b>Receipt:</b> ${esc(r.receipt_no)}<br><b>Customer:</b> ${esc(r.customer)}<br><b>Address:</b> ${esc(r.address)}</p>
       <label style="display:block; margin-bottom:8px;">Update Status:
@@ -486,24 +570,22 @@ async function openDeliveryStatus(id) {
       </label>
       <div class="modal-actions">
         <button class="gradient-button" id="upd">UPDATE</button>
-        <button class="gradient-button ghost" id="view_rcpt">VIEW RECEIPT</button>
         <button class="gradient-button ghost" id="cancel">CANCEL</button>
       </div>`);
     
     $('#upd').onclick = async () => {
       try {
-        await api('sales.updateDelivery', { id: r.id, status: $('#d_status').value });
+        await api('sales.updateDelivery', { id: parseInt(id), status: $('#d_status').value });
         toast('Delivery status updated');
         closeModal();
-        viewHistory(); 
+        setTimeout(() => { viewHistory(); }, 500); 
       } catch (e) { toast(e.message, true); }
     };
-    $('#view_rcpt').onclick = () => { closeModal(); showReceipt(r.id); };
     $('#cancel').onclick = closeModal;
   } catch (err) { toast(err.message, true); }
 }
 
-/* USERS (Admin) */
+/* ===== USERS (Admin) ===== */
 async function viewUsers() {
   const users = await api('users.list');
   $('#view').innerHTML = `<div class="tablewrap"><table class="grid"><thead><tr><th>Username</th><th>Name</th><th>Role</th><th>Created</th><th></th></tr></thead><tbody id="rows">
@@ -535,7 +617,7 @@ async function viewUsers() {
   };
 }
 
-/*AUDIT LOG (Admin)*/
+/* ===== AUDIT LOG (Admin) ===== */
 let auditCache = []; 
 
 async function viewAudit() {
