@@ -31,3 +31,4 @@ C:\Users\majan\Downloads\AquaShineWeb_1\AquaShineWebFinals-1\obj\Debug\net8.0-wi
 C:\Users\majan\Downloads\AquaShineWeb_1\AquaShineWebFinals-1\obj\Debug\net8.0-windows\AquaShine.genruntimeconfig.cache
 C:\Users\majan\Downloads\AquaShineWeb_1\AquaShineWebFinals-1\obj\Debug\net8.0-windows\ref\AquaShine.dll
 C:\Users\majan\Downloads\AquaShineWeb_1\AquaShineWebFinals-1\bin\Debug\net8.0-windows\Microsoft.Extensions.DependencyInjection.Abstractions.dll
+C:\Users\majan\Downloads\AquaShineWeb_1\AquaShineWebFinals-1\obj\Debug\net8.0-windows\AquaShine.sourcelink.json

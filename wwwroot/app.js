@@ -510,15 +510,26 @@ async function viewUsers() {
     ${users.map(u => `<tr><td><b>${esc(u.username)}</b></td><td>${esc(u.name)}</td>
       <td><select data-role="${u.id}">${['Admin', 'Manager', 'Cashier'].map(r => `<option ${r === u.role ? 'selected' : ''}>${r}</option>`).join('')}</select></td>
       <td>${esc(String(u.created).slice(0, 10))}</td>
-      <td class="act"><button class="small-button" data-act="role" data-id="${u.id}">APPLY ROLE</button> <button class="small-button light" data-act="pw" data-id="${u.id}" data-name="${esc(u.username)}">RESET PASSWORD</button></td></tr>`).join('')}</tbody></table></div>`;
+      <td class="act">
+        <button class="small-button" data-act="role" data-id="${u.id}">APPLY ROLE</button> 
+        <button class="small-button light" data-act="pw" data-id="${u.id}" data-name="${esc(u.username)}">RESET PASSWORD</button>
+        <button class="small-button danger" data-act="del" data-id="${u.id}" data-name="${esc(u.username)}">DELETE</button>
+      </td></tr>`).join('')}</tbody></table></div>`;
+      
   $('#rows').onclick = async e => {
     const b = e.target.closest('button[data-act]'); if (!b) return;
     try {
       if (b.dataset.act === 'role') {
         await api('users.setRole', { id: +b.dataset.id, role: $(`select[data-role="${b.dataset.id}"]`).value }); toast('Role updated'); viewUsers();
-      } else {
+      } else if (b.dataset.act === 'pw') {
         const v = await openForm(`New password for ${b.dataset.name}`, [{ key: 'password', label: 'NEW PASSWORD (min. 6 characters)', type: 'password', attrs: 'required minlength="6"' }], 'RESET');
         if (v) { await api('users.resetPassword', { id: +b.dataset.id, password: v.password }); toast('Password updated'); }
+      } else if (b.dataset.act === 'del') {
+        if (await askConfirm(`Are you sure you want to remove access for "${b.dataset.name}"?`)) {
+            await api('users.delete', { id: +b.dataset.id }); 
+            toast('User deactivated'); 
+            viewUsers();
+        }
       }
     } catch (err) { toast(err.message, true); }
   };

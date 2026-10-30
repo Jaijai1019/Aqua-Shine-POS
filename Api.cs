@@ -18,7 +18,7 @@ static class Api
         if (roles.Length > 0 && !roles.Contains(Session.Role)) throw new Exception("You do not have permission to do that.");
     }
     
-    // CHANGED: Now formats DateTime with AM/PM (hh:mm tt)
+    // Formats DateTime with AM/PM (hh:mm tt)
     static object Norm(object v) => v switch { DBNull => null, DateTime d => d.ToString("yyyy-MM-dd hh:mm tt"), _ => v };
     
     static List<Dictionary<string, object>> Rows(DataTable t) =>
@@ -55,9 +55,10 @@ static class Api
             case "sales.updateDelivery": Need("Admin", "Manager"); return UpdateDelivery(p);
 
             case "users.list": Need("Admin"); return Rows(Db.Table(@"SELECT u.id, u.username, CONCAT(u.first_name,' ',u.last_name) AS name, r.name AS role, u.created_at AS created 
-                                                                 FROM users u JOIN roles r ON u.role_id = r.id ORDER BY u.username"));
+                                                                 FROM users u JOIN roles r ON u.role_id = r.id WHERE u.is_active=1 ORDER BY u.username"));
             case "users.setRole": Need("Admin"); return SetRole(p);
             case "users.resetPassword": Need("Admin"); return ResetPw(p);
+            case "users.delete": Need("Admin"); return DeleteUser(p);
             
             case "audit.list": Need("Admin"); return Rows(Db.Table(@"SELECT a.id, a.created_at AS date, u.username, a.action, a.details 
                                                                    FROM audit_log a JOIN users u ON a.user_id = u.id ORDER BY a.created_at DESC LIMIT 500"));
@@ -70,8 +71,11 @@ static class Api
     {
         var u = p.S("username").Trim(); var pw = p.S("password");
         if (u == "" || pw == "") throw new Exception("Enter your username and password.");
-        var t = Db.Table("SELECT u.id, u.first_name, u.last_name, u.password_hash, r.name AS role FROM users u JOIN roles r ON u.role_id=r.id WHERE u.username=@u", ("@u", u));
-        if (t.Rows.Count == 0 || !Db.Verify(pw, (string)t.Rows[0]["password_hash"])) throw new Exception("Invalid username or password.");
+        
+        // Added is_active=1 check to block deleted users
+        var t = Db.Table("SELECT u.id, u.first_name, u.last_name, u.password_hash, r.name AS role FROM users u JOIN roles r ON u.role_id=r.id WHERE u.username=@u AND u.is_active=1", ("@u", u));
+        if (t.Rows.Count == 0 || !Db.Verify(pw, (string)t.Rows[0]["password_hash"])) throw new Exception("Invalid username or password, or account is deactivated.");
+        
         var r = t.Rows[0];
         if ((string)r["role"] != p.S("role")) throw new Exception($"This account is not a {p.S("role")}.");
         
@@ -114,6 +118,17 @@ static class Api
         if (p.S("password").Length < 6) throw new Exception("Password must be at least 6 characters.");
         Db.Exec("UPDATE users SET password_hash=@p WHERE id=@i", ("@p", Db.Hash(p.S("password"))), ("@i", p.I("id"))); 
         LogAudit("Reset Password", $"Reset password for user ID {p.I("id")}");
+        return new { ok = true };
+    }
+
+    static object DeleteUser(JsonElement p)
+    {
+        int id = p.I("id");
+        if (id == Session.UserId) throw new Exception("You cannot delete your own account.");
+        
+        // Soft delete: just mark as inactive so past receipts don't break
+        Db.Exec("UPDATE users SET is_active=0 WHERE id=@i", ("@i", id));
+        LogAudit("Delete User", $"Deactivated user ID {id}");
         return new { ok = true };
     }
 

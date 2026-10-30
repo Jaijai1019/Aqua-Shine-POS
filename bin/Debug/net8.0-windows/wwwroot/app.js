@@ -1,5 +1,5 @@
 'use strict';
-/* ===== helpers ===== */
+/* helpers */
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const peso = n => '₱' + Number(n || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -46,7 +46,7 @@ function downloadExcel(filename, rows, headersMap) {
       if (k === 'date') cls = 'class="col-date"';
       if (k === 'total') cls = 'class="col-currency"';
       
-      // For currency, remove the ₱ sign so Excel can format it as a number
+
       let displayVal = val;
       if (k === 'total') displayVal = String(val).replace('₱', '').replace(/,/g, '');
       
@@ -67,7 +67,7 @@ function downloadExcel(filename, rows, headersMap) {
   URL.revokeObjectURL(url);
 }
 
-/* ===== bridge to C# (all database work happens there) ===== */
+/* bridge to C# (all database work happens there) */
 const pending = new Map(); let seq = 0;
 if (window.chrome?.webview) {
   chrome.webview.addEventListener('message', e => {
@@ -83,7 +83,7 @@ function api(action, payload = {}) {
   });
 }
 
-/* ===== modal helpers ===== */
+/* modal helpers */
 function openModal(html) { $('#modalBox').innerHTML = html; $('#modal').classList.remove('hidden'); }
 function closeModal() { $('#modal').classList.add('hidden'); $('#modalBox').innerHTML = ''; }
 function openForm(title, fields, submit = 'SAVE') {
@@ -105,12 +105,12 @@ function askConfirm(msg) {
   });
 }
 
-/* ===== state ===== */
+/* state */
 let user = null, items = [], baskets = [[], []];
 const newMeta = () => ({ type: 'Walk-in', customer: '', address: '', contact: '', fee: '', paid: '' });
 let meta = [newMeta(), newMeta()];
 
-/* ===== login / sign up ===== */
+/* login / sign up */
 let signup = false;
 function setMode(s, msg = '') {
   signup = s;
@@ -138,7 +138,7 @@ $('#authForm').onsubmit = async e => {
 setMode(false);
 api('auth.info').then(i => { if (i.firstRun) $('#authMsg').textContent = 'First run: log in as admin / admin123 (Role: Admin), then change the password under USERS.'; }).catch(() => { });
 
-/* ===== shell ===== */
+/* shell */
 const TITLES = { items: 'ITEMS', add: 'ADD ITEMS', stock: 'STOCK', b1: 'BASKET 1', b2: 'BASKET 2', history: 'TRANSACTION HISTORY', users: 'USERS', audit: 'AUDIT LOG' };
 function tabsFor(role) {
   const t = ['items'];
@@ -194,7 +194,7 @@ function tick() {
 }
 tick(); setInterval(tick, 1000);
 
-/* ===== ITEMS ===== */
+/* ITEMS */
 async function viewItems() {
   items = await api('items.list');
   const cashier = user.role === 'Cashier';
@@ -245,7 +245,7 @@ function addToBasket(b, id, qty) {
   updateCounts(); toast(`Added ${qty} × ${it.name} → Basket ${b + 1}`);
 }
 
-/* ===== ADD ITEMS (Admin) ===== */
+/* ADD ITEMS (Admin) */
 async function viewAdd() {
   items = await api('items.list');
   const cats = [...new Set(['Water Bottles', 'Caps', 'Seals', 'Filters', 'Pumps', 'Water Products', 'Other', ...items.map(i => i.category)])];
@@ -286,7 +286,7 @@ async function viewAdd() {
   $('#f_name').focus();
 }
 
-/* ===== STOCK (Admin / Manager) ===== */
+/* STOCK (Admin / Manager) */
 async function viewStock() {
   items = await api('items.list');
   $('#view').innerHTML = `
@@ -321,7 +321,7 @@ async function viewStock() {
   $('#q').focus();
 }
 
-/* ===== BASKETS (Cashier) ===== */
+/* BASKETS (Cashier) */
 function viewBasket(b) {
   const cart = baskets[b], m = meta[b];
   const subTotal = cart.reduce((s, l) => s + l.price * l.qty, 0);
@@ -401,7 +401,7 @@ async function checkout(b, total) {
   } catch (err) { toast(err.message, true); }
 }
 
-/* ===== RECEIPT ===== */
+/* RECEIPT */
 async function showReceipt(id) {
   try {
     const r = await api('sales.receipt', { id });
@@ -424,7 +424,7 @@ async function showReceipt(id) {
   } catch (err) { toast(err.message, true); }
 }
 
-/* ===== TRANSACTION HISTORY ===== */
+/* TRANSACTION HISTORY */
 let historyCache = []; 
 
 async function viewHistory() {
@@ -503,28 +503,39 @@ async function openDeliveryStatus(id) {
   } catch (err) { toast(err.message, true); }
 }
 
-/* ===== USERS (Admin) ===== */
+/* USERS (Admin) */
 async function viewUsers() {
   const users = await api('users.list');
   $('#view').innerHTML = `<div class="tablewrap"><table class="grid"><thead><tr><th>Username</th><th>Name</th><th>Role</th><th>Created</th><th></th></tr></thead><tbody id="rows">
     ${users.map(u => `<tr><td><b>${esc(u.username)}</b></td><td>${esc(u.name)}</td>
       <td><select data-role="${u.id}">${['Admin', 'Manager', 'Cashier'].map(r => `<option ${r === u.role ? 'selected' : ''}>${r}</option>`).join('')}</select></td>
       <td>${esc(String(u.created).slice(0, 10))}</td>
-      <td class="act"><button class="small-button" data-act="role" data-id="${u.id}">APPLY ROLE</button> <button class="small-button light" data-act="pw" data-id="${u.id}" data-name="${esc(u.username)}">RESET PASSWORD</button></td></tr>`).join('')}</tbody></table></div>`;
+      <td class="act">
+        <button class="small-button" data-act="role" data-id="${u.id}">APPLY ROLE</button> 
+        <button class="small-button light" data-act="pw" data-id="${u.id}" data-name="${esc(u.username)}">RESET PASSWORD</button>
+        <button class="small-button danger" data-act="del" data-id="${u.id}" data-name="${esc(u.username)}">DELETE</button>
+      </td></tr>`).join('')}</tbody></table></div>`;
+      
   $('#rows').onclick = async e => {
     const b = e.target.closest('button[data-act]'); if (!b) return;
     try {
       if (b.dataset.act === 'role') {
         await api('users.setRole', { id: +b.dataset.id, role: $(`select[data-role="${b.dataset.id}"]`).value }); toast('Role updated'); viewUsers();
-      } else {
+      } else if (b.dataset.act === 'pw') {
         const v = await openForm(`New password for ${b.dataset.name}`, [{ key: 'password', label: 'NEW PASSWORD (min. 6 characters)', type: 'password', attrs: 'required minlength="6"' }], 'RESET');
         if (v) { await api('users.resetPassword', { id: +b.dataset.id, password: v.password }); toast('Password updated'); }
+      } else if (b.dataset.act === 'del') {
+        if (await askConfirm(`Are you sure you want to remove access for "${b.dataset.name}"?`)) {
+            await api('users.delete', { id: +b.dataset.id }); 
+            toast('User deactivated'); 
+            viewUsers();
+        }
       }
     } catch (err) { toast(err.message, true); }
   };
 }
 
-/* ===== AUDIT LOG (Admin) ===== */
+/*AUDIT LOG (Admin)*/
 let auditCache = []; 
 
 async function viewAudit() {
